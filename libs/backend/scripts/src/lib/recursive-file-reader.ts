@@ -1,111 +1,173 @@
+
 import * as fs from 'fs';
 import * as path from 'path';
 
-
+import * as babel from '@babel/core';
+import { minify } from 'terser';
+import * as UglifyJS from 'uglify-js';
 
 interface ReadDirectoryConfig {
   dirPath: string;
   excludeFilePaths?: string[];
   excludeFolderPaths?: string[];
   fileCallback: (filePath: string, content: string) => void;
-  folderCallback?: (folderPath: string) => void;
-  errorCallback?: (error: Error) => void;
+  folderCallback?: (folderPath: string) => Promise<void>;
+  errorCallback?: (error: Error) => Promise<void>;
   outputDir?: string;
 }
 
-const readFile = (filePath: string, fileCallback: (filePath: string, content: string) => void, errorCallback?: (error: Error) => void) => {
-  try {
-    const content = fs.readFileSync(filePath, 'utf8');
-    fileCallback(filePath, content);
-  } catch (error) {
-    if (errorCallback) {
-      errorCallback(error);
-    }
-  }
-};
-
-const readDirectory = (dirPath: string, excludeFilePaths: string[], excludeFolderPaths: string[], fileCallback: (filePath: string, content: string) => void, folderCallback?: (folderPath: string) => void, errorCallback?: (error: Error) => void, outputDir?: string) => {
-  try {
-    const files = fs.readdirSync(dirPath);
-    for (const file of files) {
-      logFolder(file)
-
-      const filePath = path.join(dirPath, file);
-      const stats = fs.statSync(filePath);
-
-      if (stats.isDirectory()) {
-        if (!excludeFolderPaths.includes(filePath)) {
-          if (folderCallback) {
-            folderCallback(filePath);
-          }
-          readDirectory(filePath, excludeFilePaths, excludeFolderPaths, fileCallback, folderCallback, errorCallback, outputDir);
-        }
-      } else if (stats.isFile()) {
-        if (!excludeFilePaths.includes(filePath)) {
-          readFile(filePath, fileCallback, errorCallback);
-        }
-      }
-    }
-  } catch (error) {
-    if (errorCallback) {
-      errorCallback(error);
-    }
-  }
-};
-
-const writeToFile = (outputDir: string, filePath: string, content: string, errorCallback?: (error: Error) => void) => {
-  const outputFilePath = path.join(outputDir);
-  const separator = `\n\n// ${filePath}\n`;
-  const now = new Date().toISOString();
-  const newContent = `// Start Date: ${now}\n${content}\n`;
-
-
-  logFolder(outputFilePath, "odajksdajksndkja")
-
-  try {
-
-    fs.appendFileSync(outputFilePath, separator + newContent);
-  } catch (error) {
-    if (errorCallback) {
-      errorCallback(error);
-    }
-  }
-};
-
-export const readDirectoryExcluding = (config: ReadDirectoryConfig) => {
+export const readDirectoryExcluding = async (config: ReadDirectoryConfig) => {
   const {
     dirPath,
     excludeFilePaths = [],
     excludeFolderPaths = [],
     fileCallback = logFolder,
-    folderCallback,
+    folderCallback = defaultFolderCallBack,
     errorCallback = handleError,
     outputDir,
   } = config;
 
   if (!fs.existsSync(dirPath)) {
-    throw new Error(`Directory does not exist: ${dirPath}`,);
+    throw new Error(`Directory does not exist: ${dirPath}`);
   }
 
   if (outputDir && !fs.existsSync(outputDir)) {
-    console.log('output dir => ', outputDir)
+    console.log('output dir => ', outputDir);
     fs.mkdirSync(outputDir);
   }
 
-  readDirectory(dirPath, excludeFilePaths, excludeFolderPaths, (filePath, content) => {
-    if (outputDir) {
-      writeToFile(outputDir, filePath, content, errorCallback);
-    }
-    fileCallback(filePath, content);
-  }, folderCallback, errorCallback);
+  await readDirectory(
+    dirPath,
+    excludeFilePaths,
+    excludeFolderPaths,
+    async (filePath, content) => {
+      if (outputDir) {
+        await writeToFile(outputDir, filePath, content, errorCallback);
+      }
+      fileCallback(filePath, content);
+    },
+    folderCallback,
+    errorCallback
+  );
 };
 
-const logFolder = (folderPath: string, ...args: any[]) => {
+const readDirectory = async (
+  dirPath: string,
+  excludeFilePaths: string[],
+  excludeFolderPaths: string[],
+  fileCallback: (filePath: string, content: string) => Promise<void>,
+  folderCallback?: (folderPath: string) => Promise<void>,
+  errorCallback?: (error: Error) => Promise<void>
+) => {
+  try {
+    const files = await fs.promises.readdir(dirPath);
+    for (const file of files) {
+      const filePath = path.join(dirPath, file);
+      const stats = await fs.promises.stat(filePath);
+
+      if (stats.isDirectory()) {
+        if (!excludeFolderPaths.includes(filePath)) {
+          if (folderCallback) {
+            await folderCallback(filePath);
+          }
+          await readDirectory(
+            filePath,
+            excludeFilePaths,
+            excludeFolderPaths,
+            fileCallback,
+            folderCallback,
+            errorCallback
+          );
+        }
+      } else if (stats.isFile()) {
+        if (!excludeFilePaths.includes(filePath)) {
+          const content = await fs.promises.readFile(filePath, 'utf8');
+          await fileCallback(filePath, content);
+        }
+      }
+    }
+  } catch (error) {
+    if (errorCallback) {
+      await errorCallback(error);
+    }
+  }
+};
+
+const writeToFile = async (
+  outputDir: string,
+  filePath: string,
+  content: string,
+  errorCallback?: (error: Error) => Promise<void>
+) => {
+  const outputFilePath = path.join(outputDir);
+
+  console.log('outputFilePath====', { outputFilePath, filePath })
+
+  const fileExt = path.extname(filePath);
+  if (!['.tsx', '.ts', '.js', '.jsx'].includes(fileExt)) {
+    return;
+  }
+
+
+  const separator = `\n\n// ${filePath}\n`;
+  const now = new Date().toISOString();
+  const newContent = `// Start Date: ${now}\n${content}\n`;
+
+  let transformedContent = newContent
+
+  console.log("content ==>", { newContent })
+
+  if (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) {
+    const res = await babel.transformAsync(newContent, {
+      filename: filePath,
+      presets: [['@babel/preset-env', { targets: 'defaults' }], '@babel/preset-react', '@babel/preset-typescript']
+    });
+
+    transformedContent = res?.code || ""
+  }
+
+  console.log('transformedContent => ', { transformedContent })
+
+
+
+  const uglifiedContent = UglifyJS.minify(transformedContent);
+  if (uglifiedContent.error) throw uglifiedContent.error;
+
+
+
+
+  const minifiedContent = await minify(uglifiedContent.code);
+
+  // const options = {
+  //   compress: true,
+  //   mangle: true,
+  //   output: {
+  //     comments: false
+  //   }
+  // };
+  // const uglifiedContent = UglifyJS.minify({ [filePath]: newContent }, options);
+
+
+  // const minifiedContent = (await minify(minifiedContent)).code;
+
+  try {
+    await fs.promises.appendFile(outputFilePath, minifiedContent.code);
+  } catch (error) {
+    console.error('filePath => ', { filePath })
+    if (errorCallback) {
+      await errorCallback(error);
+    }
+  }
+};
+
+const logFolder = async (folderPath: string, ...args: any[]) => {
   console.log(`Scanning folder: ${folderPath}`);
   console.log(args);
 };
 
-
-const handleError = (error: Error) => {
+const handleError = async (error: Error) => {
   console.error(`An error occurred: ${error.message}`);
+};
+const defaultFolderCallBack = async (folderPath: string) => {
+  console.log(`folder path: ${folderPath}`);
 };
