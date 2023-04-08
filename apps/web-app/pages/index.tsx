@@ -7,6 +7,12 @@ export function Index() {
    * Note: The corresponding styles are in the ./index.css file.
    */
 
+  fetch('http://localhost:3000').then(async (res) => {
+    const response = await res.json()
+
+    console.log("api response ==> ", { response })
+  })
+
   return (
     <div className="bg-gray-50">
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8 lg:flex lg:items-center lg:justify-between">
