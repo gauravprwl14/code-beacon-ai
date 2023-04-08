@@ -11,6 +11,8 @@ const app = express();
 app.use(cors());
 
 app.get("/", (req, res) => {
+
+  // readDirectory(dir)
   res.send({ message: "Hello API ssss" + backendScripts() });
 });
 
