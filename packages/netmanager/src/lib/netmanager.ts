@@ -3,7 +3,7 @@ import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import * as z from 'zod';
 import { NetManagerResponse } from './types'
 import { includes } from "../utils/helpers";
-
+import { APIError } from './api-error'
 
 // TODO
 // testing of the netmanager service
@@ -95,15 +95,15 @@ class NetManager {
   };
 
   private handleErrorResponse = (error: any) => {
+    // Default Error Object
     const errorResponse = {
       data: null,
       status: 500,
       isError: true,
-      error: {
-        code: '',
-        message: '',
-        details: null,
-      },
+      error: new APIError(
+        "Something Went wrong",
+        "500",
+      ),
       meta: null,
     };
 
@@ -111,16 +111,11 @@ class NetManager {
       const response = error.response;
       if (response) {
         errorResponse.status = response.status;
-        errorResponse.error.code = response.data?.code || '';
-        errorResponse.error.message = response.data?.message || '';
-        errorResponse.error.details = response.data?.details || null;
-      } else {
-        errorResponse.error.message = error.message || '';
+        const code = response.data?.code || '500';
+        const message = response.data?.message || 'Something Went Wrong';
+        const details = response.data?.details || undefined;
+        errorResponse.error = new APIError(message, code, details)
       }
-    } else {
-      errorResponse.status = 500;
-      errorResponse.error.message = error.message || 'Something Went Wrong';
-      errorResponse.error.code = error.code || '500';
     }
 
     return errorResponse;
