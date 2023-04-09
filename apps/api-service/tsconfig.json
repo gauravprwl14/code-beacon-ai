@@ -10,11 +10,6 @@
       "path": "./tsconfig.spec.json"
     }
   ],
-  "paths": {
-    "@backend/scripts": [
-      "./libs/backend/scripts/src"
-    ]
-  },
   "compilerOptions": {
     "esModuleInterop": true
   }
