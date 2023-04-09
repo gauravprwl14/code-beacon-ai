@@ -3,7 +3,7 @@ import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import * as z from 'zod';
 import { NetManagerResponse } from './types'
 import { includes } from "../utils/helpers";
-import { APIError } from './api-error'
+import { APIError } from './apiError'
 
 // TODO
 // testing of the netmanager service

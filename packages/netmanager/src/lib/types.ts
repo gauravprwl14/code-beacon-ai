@@ -1,4 +1,4 @@
-import { APIError } from "./api-error";
+import { APIError } from "./apiError";
 
 export interface ErrorDetails {
   [key: string]: any;
