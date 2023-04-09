@@ -10,21 +10,14 @@
     "importHelpers": true,
     "target": "es2015",
     "module": "esnext",
-    "lib": [
-      "es2017",
-      "dom"
-    ],
+    "lib": ["es2017", "dom"],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@org/backend/scripts": [
-        "libs/backend/scripts/src/index.ts"
-      ]
+      "@org/backend/scripts": ["libs/backend/scripts/src/index.ts"],
+      "@org/netmanager": ["packages/netmanager/src/index.ts"]
     }
   },
-  "exclude": [
-    "node_modules",
-    "tmp"
-  ]
+  "exclude": ["node_modules", "tmp"]
 }
