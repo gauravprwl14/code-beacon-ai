@@ -1,6 +1,10 @@
 import express from "express";
 import cors from 'cors';
 import { backendScripts } from "@org/backend/scripts"
+// import { backendScripts } from "@backend/scripts"
+// import { env } from './config/env'
+
+// import { env } from '@config/env'
 
 const host = process.env.HOST ?? "localhost";
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;

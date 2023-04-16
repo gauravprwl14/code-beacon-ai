@@ -19,7 +19,7 @@
     "baseUrl": ".",
     "paths": {
       "@org/backend/scripts": [
-        "libs/backend/scripts/src/index.ts"
+        "./libs/backend/scripts/src/index.ts"
       ],
       "@org/netmanager": [
         "packages/netmanager/src/index.ts"

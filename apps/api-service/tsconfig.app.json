@@ -6,11 +6,11 @@
     "types": [
       "node"
     ],
-    "paths": {
-      "@src/*": [
-        "./src/*"
-      ],
-    }
+    // "paths": {
+    //   "@src/*": [
+    //     "./src/*"
+    //   ],
+    // }
   },
   "exclude": [
     "jest.config.ts",

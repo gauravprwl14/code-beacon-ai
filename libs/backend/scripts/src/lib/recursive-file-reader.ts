@@ -1,7 +1,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-
+import * as zlib from 'zlib';
 import * as babel from '@babel/core';
 import { minify } from 'terser';
 import * as UglifyJS from 'uglify-js';
@@ -104,39 +104,43 @@ const writeToFile = async (
   console.log('outputFilePath====', { outputFilePath, filePath })
 
   const fileExt = path.extname(filePath);
-  if (!['.tsx', '.ts', '.js', '.jsx'].includes(fileExt)) {
-    return;
-  }
+  // if (!['.tsx', '.ts', '.js', '.jsx', 'json'].includes(fileExt)) {
+  //   return;
+  // }
 
 
   const separator = `\n\n// ${filePath}\n`;
   const now = new Date().toISOString();
   const newContent = `// Start Date: ${now}\n${content}\n`;
 
-  let transformedContent = newContent
+  const transformedContent = newContent
 
-  console.log("content ==>", { newContent })
+  // console.log("content ==>", { newContent })
 
-  if (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) {
-    const res = await babel.transformAsync(newContent, {
-      filename: filePath,
-      presets: [['@babel/preset-env', { targets: 'defaults' }], '@babel/preset-react', '@babel/preset-typescript']
-    });
+  // if (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) {
+  //   const res = await babel.transformAsync(newContent, {
+  //     filename: filePath,
+  //     presets: [['@babel/preset-env', { targets: 'defaults' }], '@babel/preset-react', '@babel/preset-typescript']
+  //   });
 
-    transformedContent = res?.code || ""
-  }
+  //   transformedContent = res?.code || ""
+  // }
 
-  console.log('transformedContent => ', { transformedContent })
-
-
-
-  const uglifiedContent = UglifyJS.minify(transformedContent);
-  if (uglifiedContent.error) throw uglifiedContent.error;
+  // console.log('transformedContent => ', { transformedContent })
 
 
 
+  // const uglifiedContent = UglifyJS.minify(transformedContent);
+  // if (uglifiedContent.error) throw uglifiedContent.error;
 
-  const minifiedContent = await minify(uglifiedContent.code);
+
+
+
+  // const minifiedContent = await minify(uglifiedContent.code);
+
+  // Compress the uglified JSON data
+  // const compressedContent = zlib.gzipSync(minifiedContent.code);
+  const compressedContent = zlib.gzipSync(transformedContent);
 
   // const options = {
   //   compress: true,
@@ -151,7 +155,7 @@ const writeToFile = async (
   // const minifiedContent = (await minify(minifiedContent)).code;
 
   try {
-    await fs.promises.appendFile(outputFilePath, minifiedContent.code);
+    await fs.promises.appendFile(outputFilePath, compressedContent);
   } catch (error) {
     console.error('filePath => ', { filePath })
     if (errorCallback) {
